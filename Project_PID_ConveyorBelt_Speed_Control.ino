@@ -1,140 +1,137 @@
 /*
-Universidade Federal da Bahia (UFBA)
-Departamento de Engenharia Elétrica e da Computação (DEEC) - Escola Politécnica
-Alunos: Gabriel Correia e Mateus Fiscina
-Disciplina: Laboratório Integrado VI
-Professora: Cristiane Paim
+Federal University of Bahia (UFBA)
+Department of Electrical and Computer Engineering (DEEC) - Polytechnic School
+Students: Gabriel Correia and Mateus Fiscina
 
-MODELO DE CONTROLE DE VELOCIDADE DE ESTEIRA UTILIZANDO PID
+
+CONVEYOR SPEED CONTROL MODEL USING PID
 */
 
-// ---------------- DEFINIÇÃO E CONFIGURAÇÕES INICIAIS ----------------
-// Importação das Bibliotecas do Código (importante baixar antes de executar)
-#include <AFMotor.h> // Biblioteca para controlar motores DC usando o Adafruit Motor Shield
-#include <PID_v1.h>  // Biblioteca para controle PID
-#include <Wire.h>    // Biblioteca para comunicação I2C
-#include <LiquidCrystal_I2C.h> // Biblioteca para controlar LCD I2C
+// ---------------- DEFINITION AND INITIAL SETTINGS ----------------
+// Import Code Libraries (important to download before running)
+#include <AFMotor.h> // Library for controlling DC motors using the Adafruit Motor Shield
+#include <PID_v1.h>  // Library for PID control
+#include <Wire.h>    // Library for I2C communication
+#include <LiquidCrystal_I2C.h> // Library for I2C LCD control
 
-// Configuração do Motor
-AF_DCMotor motor(1); // Cria um objeto motor na porta M1 do Adafruit Motor Shield
+// Engine configuration
+AF_DCMotor motor(1); // Creates a motor object on port M1 of the Adafruit Motor Shield
 
-// Constantes do Controle PID
-#define MIN_PWM 0   // Valor mínimo de PWM
-#define MAX_PWM 255 // Valor máximo de PWM
-#define KP 0.1625  // Constante proporcional do PID
-#define KI 1.776      // Constante integral do PID
-#define KD 0   // Constante derivativa do PID
+// PID Control Constants
+#define MIN_PWM 0   // Minimum PWM value
+#define MAX_PWM 255 // Maximum PWM value
+#define KP 0.1625  // PID proportional constant
+#define KI 1.776   // PID integral constant
+#define KD 0       // PID derivative constant
 
-// Variáveis do Sensor Infravermelho e PID
-double rpm;                  // Armazena o valor atual de RPM do motor
-volatile byte pulsos;        // Contador de pulsos do sensor infravermelho
-unsigned long timeold;       // Marca o tempo da última atualização de RPM
-int pinoSensor = 18;         // Pino do Arduino ligado ao pino D0 do sensor
-unsigned int pulsosDisco = 20; // Número de pulsos por rotação completa do disco encoder
-double velocidade = 0;         // Armazena o valor de saída do PID (PWM)
-double velocidadeSetpoint = 100; // Velocidade desejada (setpoint) em RPM
+// Variables for the Infrared Sensor and PID
+double rpm;                  // Stores the current motor RPM value
+volatile byte pulses;        // Pulse counter for the infrared sensor
+unsigned long timeold;       // Marks the time of the last RPM update
+int sensorPin = 18;          // Arduino pin connected to the D0 pin of the sensor
+unsigned int discPulses = 20; // Number of pulses per full rotation of the encoder disc
+double speed = 0;            // Stores the PID output value (PWM)
+double speedSetpoint = 100;  // Desired speed (setpoint) in RPM
 
-// Constante para o pino do potenciômetro
-const int potPin = A10; // Pino analógico onde o potenciômetro está conectado
-const int switchPin = 30; // Pino digital onde o switch está conectado
+// Constant for the potentiometer pin
+const int potPin = A10;   // Analog pin where the potentiometer is connected
+const int switchPin = 30; // Digital pin where the switch is connected
 
-// Substitua 0x27 pelo endereço do seu LCD encontrado pelo scanner I2C
-LiquidCrystal_I2C lcd(0x27, 16, 2); // Inicializa o display LCD I2C com endereço 0x27, 16 colunas e 2 linhas
+// Replace 0x27 with the address of your LCD found by the I2C scanner
+LiquidCrystal_I2C lcd(0x27, 16, 2); // Initializes the I2C LCD display with address 0x27, 16 columns, and 2 rows
 
-// Cria PID para controle
-PID motorPID(&rpm, &velocidade, &velocidadeSetpoint, KP, KI, KD, DIRECT);
+// Creates PID for control
+PID motorPID(&rpm, &speed, &speedSetpoint, KP, KI, KD, DIRECT);
 
 
-// ---------------- PROGRAMA A SER RODADO ----------------
-// Função executada a cada interrupção
-void contador() {
-  pulsos++;  // Incrementa o contador de pulsos
+// ---------------- PROGRAM TO BE RUN ----------------
+// Function executed at each interrupt
+void counter() {
+  pulses++;  // Increments the pulse counter
 }
 
 // SETUP
 void setup() {
-  // Inicia Serial
-  Serial.begin(9600); // Inicia a comunicação serial com velocidade de 9600 bps
+  // Start Serial
+  Serial.begin(9600); // Starts serial communication at 9600 bps
 
-  // Inicia o LCD I2C
-  lcd.init(); // Inicializa o display LCD
+  // Start the I2C LCD
+  lcd.init(); // Initializes the LCD display
   // lcd.begin(16, 2);
-  lcd.backlight(); // Liga a luz de fundo do LCD
+  lcd.backlight(); // Turns on the LCD backlight
  
-  // Configura Interrupção
-  pinMode(pinoSensor, INPUT); // Define o pino do sensor como entrada
-  pinMode(switchPin, INPUT); // Configura o pino do switch como entrada com pull-up interno
+  // Interrupt Configuration
+  pinMode(sensorPin, INPUT);  // Sets the sensor pin as input
+  pinMode(switchPin, INPUT);  // Configures the switch pin as input with an internal pull-up
 
-  attachInterrupt(digitalPinToInterrupt(pinoSensor), contador, FALLING); // Configura interrupção para contar pulsos em borda de descida
-  pulsos = 0; // Inicializa o contador de pulsos
-  rpm = 0;    // Inicializa o valor de RPM
-  timeold = 0; // Inicializa o tempo antigo
+  attachInterrupt(digitalPinToInterrupt(sensorPin), counter, FALLING); // Sets an interrupt to count pulses on the falling edge
+  pulses = 0;    // Initializes the pulse counter
+  rpm = 0;       // Initializes the RPM value
+  timeold = 0;   // Initializes the previous time
 
-  // Configura controle PID
-  motorPID.SetOutputLimits(MIN_PWM, MAX_PWM); // Define os limites de saída do PID
-  motorPID.SetMode(AUTOMATIC); // Define o modo do PID para automático
+  // PID Control Configuration
+  motorPID.SetOutputLimits(MIN_PWM, MAX_PWM); // Sets the PID output limits
+  motorPID.SetMode(AUTOMATIC); // Sets the PID mode to automatic
 }
 
 
 // LOOP
 void loop() {
-  // Lê o valor do potenciômetro e ajusta o setpoint de velocidade
-  int potValue = analogRead(potPin); // Lê o valor do potenciômetro
-  velocidadeSetpoint = map(potValue, 0, 1023, 0, 500); // Mapeia o valor do potenciômetro para a faixa desejada de RPM
+  // Reads the potentiometer value and adjusts the speed setpoint
+  int potValue = analogRead(potPin); // Reads the potentiometer value
+  speedSetpoint = map(potValue, 0, 1023, 0, 500); // Maps the potentiometer value to the desired RPM range
 
-  // Lê o estado do switch
-  bool switchState = digitalRead(switchPin); // Lê o estado do switch (HIGH se pressionado, LOW se não pressionado)
+  // Reads the switch state
+  bool switchState = digitalRead(switchPin); // Reads the switch state (HIGH if pressed, LOW if not pressed)
 
-  // Calcula RPM a cada 1 Segundo
-  if (millis() - timeold >= 1000) { // Se um segundo se passou desde a última medição
-    detachInterrupt(digitalPinToInterrupt(pinoSensor)); // Desabilita a interrupção durante o cálculo para evitar inconsistências
-    rpm = (60 * 1000 / pulsosDisco) / (millis() - timeold) * pulsos; // Calcula RPM baseado nos pulsos contados
-    timeold = millis(); // Atualiza o tempo antigo para o tempo atual
-    pulsos = 0; // Reseta o contador de pulsos
+  // Calculates RPM every 1 Second
+  if (millis() - timeold >= 1000) { // If one second has passed since the last measurement
+    detachInterrupt(digitalPinToInterrupt(sensorPin)); // Disables the interrupt during the calculation to avoid inconsistencies
+    rpm = (60 * 1000 / discPulses) / (millis() - timeold) * pulses; // Calculates RPM based on the counted pulses
+    timeold = millis(); // Updates the previous time to the current time
+    pulses = 0; // Resets the pulse counter
     
-    // Exibe TODOS os valores no serial monitor
+    // Displays ALL values on the serial monitor
     Serial.print("Setpoint: ");
-    Serial.print(velocidadeSetpoint); // Exibe o setpoint de velocidade atual
+    Serial.print(speedSetpoint); // Displays the current speed setpoint
     Serial.print("  ");
-    Serial.print("Vel - saída PID: ");
-    Serial.print(velocidade, 2); // Exibe a velocidade calculada pelo PID com duas casas decimais
+    Serial.print("Speed - PID output: ");
+    Serial.print(speed, 2); // Displays the speed calculated by the PID with two decimal places
     Serial.print("  ");
     Serial.print("RPM: ");
-    Serial.println(rpm, 0); // Exibe o valor de RPM calculado
-    Serial.print("Erro: ");
-    Serial.println(velocidadeSetpoint - rpm); // Exibe o valor do erro do SetPoint em relação ao RPM medido pelo sensor
+    Serial.println(rpm, 0); // Displays the calculated RPM value
+    Serial.print("Error: ");
+    Serial.println(speedSetpoint - rpm); // Displays the error between the setpoint and the RPM measured by the sensor
 
-    // Habilita novamente a interrupção
-    attachInterrupt(digitalPinToInterrupt(pinoSensor), contador, FALLING);
+    // Re-enables the interrupt
+    attachInterrupt(digitalPinToInterrupt(sensorPin), counter, FALLING);
   }
 
-  // Calcula o PWM do motor conforme Controle PID
-  motorPID.Compute(); // Calcula o valor de saída do PID baseado no RPM atual e no setpoint
+  // Calculates the motor PWM according to the PID control
+  motorPID.Compute(); // Calculates the PID output value based on the current RPM and setpoint
 
-
-    // Lê o estado do switch
+  // Reads the switch state
   //int switchState = digitalRead(switchPin);
 
-  // Ajusta PWM no motor com base no estado do switch
+  // Adjusts motor PWM based on the switch state
   if (switchState == LOW) {
-    motor.run(FORWARD); // Se o switch estiver pressionado, roda o motor para frente
+    motor.run(FORWARD); // If the switch is pressed, runs the motor forward
    
   } else {
-    motor.run(BACKWARD); // Caso contrário, roda o motor para trás
+    motor.run(BACKWARD); // Otherwise, runs the motor backward
     
   }
   
-  motor.setSpeed(velocidade);   // Define o PWM do motor com o valor calculado pelo PID
+  motor.setSpeed(speed);   // Sets the motor PWM with the value calculated by the PID
 
-
-  // Apresenta os parâmetros no visor do LCD I2C
-  lcd.clear(); // Limpa o display LCD
-  lcd.setCursor(0, 0); // Move o cursor para a primeira linha
-  lcd.print("Setpoint: "); // Exibe "Setpoint:" no LCD
-  lcd.print(velocidadeSetpoint); // Exibe o setpoint de velocidade atual
-  lcd.setCursor(0, 1); // Move o cursor para a segunda linha
-  lcd.print("Snsr: "); // Exibe "Sensor:" no LCD
-  lcd.print(rpm);      // Exibe o valor de RPM calculado
-  lcd.print(" RPM");   // Exibe " RPM" após o valor de RPM
-  //delay(100); // Aguarda 100 milissegundos antes de repetir o loop
+  // Displays the parameters on the I2C LCD screen
+  lcd.clear(); // Clears the LCD display
+  lcd.setCursor(0, 0); // Moves the cursor to the first line
+  lcd.print("Setpoint: "); // Displays "Setpoint:" on the LCD
+  lcd.print(speedSetpoint); // Displays the current speed setpoint
+  lcd.setCursor(0, 1); // Moves the cursor to the second line
+  lcd.print("Sensor: "); // Displays "Sensor:" on the LCD
+  lcd.print(rpm);      // Displays the calculated RPM value
+  lcd.print(" RPM");   // Displays " RPM" after the RPM value
+  //delay(100); // Waits 100 milliseconds before repeating the loop
 }
