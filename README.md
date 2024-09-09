@@ -16,6 +16,7 @@ Below you can see the modeling project and the final 3D print of the conveyor be
 
 ## Bibliographic Reference
 FITZGERALD, A. E.; KINGSLEY, C.; UMANS, S. D. Electrical Machines. Reviewed by Stephen D. Umans. Seventh Edition. Porto Alegre: AMGH, 2014.
+
 NISE, Norman S. Control systems engineering. Translation and technical revision Jackson Paul Matsuura. 6th edition. Rio de Janeiro: LTC, 2013
 
 ## Contact
