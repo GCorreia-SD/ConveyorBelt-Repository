@@ -11,8 +11,10 @@ This repository covers the process of modeling, designing, 3D printing and devel
 Below you can see the modeling project and the final 3D print of the conveyor belt. The project code is also available in the other files in this repository for you to consult. 
 
 ## Angle Graph and Robot's Trajectory:
-![image](https://github.com/GCorreia-SD/HuskyComputerVision-Repository/blob/main/Husky1_angle_graph.png)
-![image](https://github.com/GCorreia-SD/HuskyComputerVision-Repository/blob/main/Husky1_graphic_trajectory.png)
+![image](https://github.com/GCorreia-SD/ConveyorBelt-Repository/blob/images/ProjectConveyorBelt.png)
+![image](https://github.com/GCorreia-SD/ConveyorBelt-Repository/blob/images/ModelingConveyorBelt_Part1.png)
+![image](https://github.com/GCorreia-SD/ConveyorBelt-Repository/blob/images/ModelingConveyorBelt_Part2.png)
+![image](https://github.com/GCorreia-SD/ConveyorBelt-Repository/blob/images/3DPrintingConveyorBelt.png)
 
 ## Bibliographic Reference
 FITZGERALD, A. E.; KINGSLEY, C.; UMANS, S. D. Electrical Machines. Reviewed by Stephen D. Umans. Seventh Edition. Porto Alegre: AMGH, 2014.
